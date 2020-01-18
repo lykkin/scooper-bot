@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "axios": "^0.19.1",
+    "form-data": "^3.0.0",
+    "jimp": "^0.9.3",
+    "node-telegram-bot-api": "^0.40.0"
+  }
+}
