@@ -40,7 +40,13 @@ async function uploader(botInfo, bumps, sent) {
     const setName = getStickerSetName({botInfo, setIdx})
 
     // compute image buffer to send
-    const im = await Jimp.read(`http://${bump.name}.shithouse.tv/${bump.image}`)
+    let im
+    try {
+      im = await Jimp.read(`http://${bump.name}.shithouse.tv/${bump.image}`)
+    } catch (e) {
+      console.log('error fetching bump', e)
+      continue
+    }
     im.scaleToFit(512, 512)
     const toSend = await im.getBufferAsync('image/png')
     console.log('processing', i, setIdx, bump)
@@ -70,6 +76,7 @@ async function uploader(botInfo, bumps, sent) {
       )
     } catch (e) {
       console.log(e)
+      continue
     }
     if (!sent[setIdx]) {
       const stickerSet = await bot.getStickerSet(setName)
