@@ -2,9 +2,41 @@
 
 const axios = require('axios')
 const Jimp = require('jimp')
-const FormData = require('form-data')
+const fs = require('fs').promises
 const TelegramBot = require('node-telegram-bot-api')
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN)
+
+const dbFileHandleProm = fs.open('./bump-db.json', 'r+')
+
+const dbDefault = {
+  seen: {},
+  sent: {}
+}
+async function loadDb() {
+  const fsh = await dbFileHandleProm
+  let data = ''
+  try {
+    data = (await fsh.readFile()).toString()
+  } catch (e) {
+    console.log('failed reading db', e)
+    return dbDefault
+  }
+  if (data) {
+    return JSON.parse(data)
+  } else {
+    console.log('zcv')
+    return dbDefault
+  }
+}
+
+async function saveDb(db) {
+  const fsh = await dbFileHandleProm
+  try {
+    await fsh.write(JSON.stringify(db), 0)
+  } catch (e) {
+    console.log('failed to write db', e)
+  }
+}
 
 // number of stickers per set
 const SET_SIZE = 100
@@ -30,10 +62,14 @@ function getStickerSetName({botInfo, setIdx}) {
   return `shithouse_scoop_${setIdx}_by_${botInfo.username}`
 }
 
-async function uploader(botInfo, bumps, sent) {
+async function uploader(botInfo, bumps, db) {
+  const {seen, sent} = db
   while(bumps.length) {
     const bump = bumps.pop()
     const i = bumps.length
+    if (seen[bump.name]) {
+      continue
+    }
 
     // compute sticker set name
     const setIdx = (i / SET_SIZE) | 0
@@ -45,6 +81,8 @@ async function uploader(botInfo, bumps, sent) {
       im = await Jimp.read(`http://${bump.name}.shithouse.tv/${bump.image}`)
     } catch (e) {
       console.log('error fetching bump', e)
+      seen[bump.name] = true
+      await saveDb(db)
       continue
     }
     im.scaleToFit(512, 512)
@@ -67,6 +105,7 @@ async function uploader(botInfo, bumps, sent) {
       }
     }
 
+    seen[bump.name] = true
     try {
       await bot.addStickerToSet(
         process.env.TELEGRAM_USER_ID,
@@ -74,8 +113,10 @@ async function uploader(botInfo, bumps, sent) {
         toSend,
         getEmoji()
       )
+      await saveDb(db)
     } catch (e) {
       console.log(e)
+      await saveDb(db)
       continue
     }
     if (!sent[setIdx]) {
@@ -85,16 +126,16 @@ async function uploader(botInfo, bumps, sent) {
         stickerSet.stickers[0].file_id
       )
       sent[setIdx] = true
+      await saveDb(db)
     }
     await sleep(100)
   }
 }
 
 function generateUploadBumps(numWorkers) {
-  const sent = []
-  return async function uploadBumps([{botInfo}, bumps]) {
+  return async function uploadBumps([{botInfo}, db, bumps]) {
     for (let i = 0; i < numWorkers; ++i) {
-      uploader(botInfo, bumps, sent)
+      uploader(botInfo, bumps, db)
     }
   }
 }
@@ -132,7 +173,8 @@ async function getMetadata() {
 
 Promise.all([
   getMetadata(),
-  getBumps()
+  loadDb(),
+  getBumps(),
 ])
   .then(generateUploadBumps(PARALLEL_UPLOADERS))
   //.then(cleanBumps)
