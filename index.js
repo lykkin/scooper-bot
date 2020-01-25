@@ -6,14 +6,22 @@ const fs = require('fs').promises
 const TelegramBot = require('node-telegram-bot-api')
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN)
 
-const dbFileHandleProm = fs.open('./bump-db.json', 'r+')
+let fsh
+async function getDbFileHandle() {
+  try {
+    fsh = await fs.open('./bump-db.json', 'r+')
+  } catch (e) {
+    console.log('error while opening file handle', e)
+    fsh = await fs.open('./bump-db.json', 'w+')
+  }
+  return fsh
+}
 
 const dbDefault = {
   seen: {},
   sent: {}
 }
 async function loadDb() {
-  const fsh = await dbFileHandleProm
   let data = ''
   try {
     data = (await fsh.readFile()).toString()
@@ -30,7 +38,6 @@ async function loadDb() {
 }
 
 async function saveDb(db) {
-  const fsh = await dbFileHandleProm
   try {
     await fsh.write(JSON.stringify(db), 0)
   } catch (e) {
@@ -142,7 +149,7 @@ function generateUploadBumps(numWorkers) {
 
 async function getBumps() {
   const bumpRequest = axios.get('http://api.shithouse.tv')
-  return (await bumpRequest).data.filter(b => b.image && imageRegex.exec(b.image))
+  return (await bumpRequest).data.filter(b => b.image && imageRegex.exec(b.image)).reverse()
 
 }
 
@@ -154,7 +161,7 @@ async function getSet(setName) {
   }
 }
 
-async function cleanBumps({botInfo}) {
+async function cleanBumps([{botInfo}]) {
   let setIdx = 0
   let currSet
   while (currSet = await getSet(getStickerSetName({botInfo, setIdx}))) {
@@ -173,7 +180,7 @@ async function getMetadata() {
 
 Promise.all([
   getMetadata(),
-  loadDb(),
+  getDbFileHandle().then(loadDb),
   getBumps(),
 ])
   .then(generateUploadBumps(PARALLEL_UPLOADERS))
