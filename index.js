@@ -170,6 +170,7 @@ async function cleanBumps([{botInfo}]) {
     }
     ++setIdx
   }
+  await fs.unlink('./bump-db.json')
 }
 
 async function getMetadata() {
