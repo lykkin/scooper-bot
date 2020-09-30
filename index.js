@@ -160,7 +160,6 @@ async function startLinkScraper(botInfo, db) {
   bot.onText(httpPattern, async (msg, match) => {
     if (msg.message_id > db.lastMessageIdSeen) {
       db.lastMessageIdSeen = msg.message_id
-      console.log('sending', msg)
       await saveDb(db)
       const person = msg.from.username || msg.from.first_name
       const payload = {
@@ -169,11 +168,13 @@ async function startLinkScraper(botInfo, db) {
         person,
         title: msg.text
       }
-      console.log('shipping', payload)
       try {
         await axios.post('http://infoforcefeed.shithouse.tv/submit', payload)
       } catch (e) {
-        console.log('failure in shipping', e)
+        console.log('failure in shipping', {
+          payload,
+          e
+        })
       }
     }
   })
