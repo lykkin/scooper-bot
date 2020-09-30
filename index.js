@@ -4,7 +4,7 @@ const axios = require('axios')
 const Jimp = require('jimp')
 const fs = require('fs').promises
 const TelegramBot = require('node-telegram-bot-api')
-const bot = new TelegramBot(process.env.TELEGRAM_TOKEN)
+const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, {polling: true})
 
 let fsh
 async function getDbFileHandle() {
@@ -39,6 +39,7 @@ async function loadDb() {
 
 async function saveDb(db) {
   try {
+    console.log('writing db')
     await fsh.write(JSON.stringify(db), 0)
   } catch (e) {
     console.log('failed to write db', e)
@@ -140,11 +141,42 @@ async function uploader(botInfo, bumps, db) {
 }
 
 function generateUploadBumps(numWorkers) {
-  return async function uploadBumps([{botInfo}, db, bumps]) {
+  return async function uploadBumps(botInfo, db, bumps) {
     for (let i = 0; i < numWorkers; ++i) {
       uploader(botInfo, bumps, db)
     }
   }
+}
+
+// link scraper
+const httpPattern = /(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/gi
+
+async function startLinkScraper(botInfo, db) {
+  if (db.lastMessageIdSeen == null) {
+    db.lastMessageIdSeen = 0
+    await saveDb(db)
+  }
+
+  bot.onText(httpPattern, async (msg, match) => {
+    if (msg.message_id > db.lastMessageIdSeen) {
+      db.lastMessageIdSeen = msg.message_id
+      console.log('sending', msg)
+      await saveDb(db)
+      const person = msg.from.username || msg.from.first_name
+      const payload = {
+        submission_salt: process.env.IFF_SUBMISSION_SALT,
+        url: match[1],
+        person,
+        title: msg.text
+      }
+      console.log('shipping', payload)
+      try {
+        await axios.post('http://infoforcefeed.shithouse.tv/submit', payload)
+      } catch (e) {
+        console.log('failure in shipping', e)
+      }
+    }
+  })
 }
 
 async function getBumps() {
@@ -184,5 +216,9 @@ Promise.all([
   getDbFileHandle().then(loadDb),
   getBumps(),
 ])
-  .then(generateUploadBumps(PARALLEL_UPLOADERS))
+  .then(async function([{botInfo}, db, bumps]) {
+    startLinkScraper(botInfo, db)
+    await generateUploadBumps(PARALLEL_UPLOADERS)(botInfo, db, bumps)
+  })
   //.then(cleanBumps)
+console.log(process.env)
