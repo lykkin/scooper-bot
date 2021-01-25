@@ -220,10 +220,10 @@ bot.onText(
     // of the message
     const chatId = msg.chat.id;
     // const resp = match[1]; // the captured "whatever"
-    const response = `YA GONNA GET SWOLE DOING ${match[1].toUpperCase()}?
-  SETS: ${match[2]}
-  REPS: ${match[3]}
-  WEIGHT: ${match[4]}`;
+    const response = `YA GONNA GET SWOLE DOING ${match.groups.lift.toUpperCase()}?
+  SETS: ${match.groups.sets}
+  REPS: ${match.groups.reps}
+  WEIGHT: ${match.groups.weight}`;
     // send back the matched "whatever" to the chat
     bot.sendMessage(chatId, response);
   }
