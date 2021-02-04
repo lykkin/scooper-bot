@@ -213,11 +213,12 @@ async function getMetadata() {
 }
 
 bot.onText(
-  /(?<lift>[a-zA-Z]+): (?<sets>[0-9]+)x(?<reps>[0-9]+)@(?<weight>[0-9]+)/,
+  /(?<lift>[a-zA-Z0-9\s]+): (?<sets>[0-9]+)x(?<reps>[0-9]+)@(?<weight>[0-9]+)/,
   async (msg, match) => {
     // 'msg' is the received Message from Telegram
     // 'match' is the result of executing the regexp above on the text content
     // of the message
+    const chatId = msg.chat.id;
     const payload = {
       nickname: msg.from.first_name,
       sets: Number(match.groups.sets),
@@ -232,6 +233,11 @@ bot.onText(
         {headers: {'Authorization': `${process.env.LIFT_TOKEN}`}}
         );
         console.log('res', hello.data)
+      if(hello) {
+        const response = `YA GONNA GET SWOLE DOING ${match.groups.lift.toUpperCase()}?\r\nSETS: ${match.groups.sets}\r\nREPS: ${match.groups.reps}\r\nWEIGHT: ${match.groups.weight}`;
+        bot.sendMessage(chatId, response);
+      }
+
     } catch(error) {
       // console.log('Lift post error',error)
       console.log('message:', error.message)
@@ -244,21 +250,50 @@ bot.onText(
       console.log('data', error.response.data);
       console.log('status', error.response.status);
       // console.log('headers', error.response.headers);
+      bot.sendMessage(chatId, 'FUCK YOU WEAKLING')
       }
     }
 
-    const chatId = msg.chat.id;
-    // const resp = match[1]; // the captured "whatever"
-    const response = `YA GONNA GET SWOLE DOING ${match.groups.lift.toUpperCase()}?
-  SETS: ${match.groups.sets}
-  REPS: ${match.groups.reps}
-  WEIGHT: ${match.groups.weight}`;
-    // send back the matched "whatever" to the chat
-    bot.sendMessage(chatId, response);
+
   }
 );
 
+// TODO: fix "lift" regex, spit errors on failed posts, fix async bot msging
+bot.onText(/my lifts/,
+  async (msg, match) => {
+    // 'msg' is the received Message from Telegram
+    // 'match' is the result of executing the regexp above on the text content
+    // of the message
+    const chatId = msg.chat.id;
+    const nickname = msg.from.first_name;
+    try {
+      const hello = await axios.get(`https://wheypi.shithouse.tv/api/lifts/${nickname}`);
 
+      if(hello) {
+        bot.sendMessage(chatId, `HERE'S YOUR WORKOUT SCRUB:`)
+        hello.data.data.forEach(lift => {
+          bot.sendMessage(chatId, `${lift.lift}\r\nSETS ${lift.sets}\r\nREPS ${lift.reps}\r\nWEIGHT ${lift.weight}`);
+        });
+        bot.sendMessage(chatId, 'DO MORE REPS TODAY, ARE YOU FUCKING TIRED YET?')
+      }
+
+    } catch(error) {
+      // console.log('Lift post error',error)
+      console.log('message:', error.message)
+      console.log('code:', error.code);
+      console.log('request:', error.request);
+      console.log('isAxiosError', error.isAxiosError);
+
+      // console.log('response', error.response);
+      if(error.response){
+      console.log('data', error.response.data);
+      console.log('status', error.response.status);
+      // console.log('headers', error.response.headers);
+      bot.sendMessage(chatId, 'FUCK YOU WEAKLING')
+      }
+    }
+  }
+);
 
 // Promise.all([
 //   getMetadata(),
