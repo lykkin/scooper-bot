@@ -269,12 +269,14 @@ bot.onText(/my lifts/,
     try {
       const hello = await axios.get(`https://wheypi.shithouse.tv/api/lifts/${nickname}`);
 
-      if(hello) {
+      if(hello.data.data.length > 0) {
         bot.sendMessage(chatId, `HERE'S YOUR WORKOUT SCRUB:`)
         hello.data.data.forEach(lift => {
           bot.sendMessage(chatId, `${lift.lift}\r\nSETS ${lift.sets}\r\nREPS ${lift.reps}\r\nWEIGHT ${lift.weight}`);
         });
         bot.sendMessage(chatId, 'DO MORE REPS TODAY, ARE YOU FUCKING TIRED YET?')
+      } else {
+        bot.sendMessage(chatId, `WHAT DO YOU MEAN YOU DON'T HAVE A ROUTINE YET?`)
       }
 
     } catch(error) {
@@ -294,6 +296,100 @@ bot.onText(/my lifts/,
     }
   }
 );
+
+
+
+// Keyboard replacement meme
+bot.onText(/fmuf2/, (msg) => {
+  const opts = {
+    reply_to_message_id: msg.message_id,
+    reply_markup: JSON.stringify({
+      keyboard: [
+        ['AAAAAAAAAAAAAAA'],
+        ['AAAAAAAAAAAAAAAAAAAAAAAAAAA'],
+        ['AAAAAAAAAAAAAAAAAAAAAAA'],
+        ['AAAAAAAAA'],
+        ['AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA']
+      ]
+    })
+  };
+  bot.sendMessage(msg.chat.id, 'AAAAAAAAAAAA', opts);
+});
+
+// Inline keboard example
+bot.onText(/fmuf/, function onEditableText(msg) {
+  const opts = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: '1',
+            callback_data: '1'
+          },
+          {
+            text: '2',
+            callback_data: '2'
+          },
+          {
+            text: '3',
+            callback_data: '3'
+          },
+          {
+            text: '4',
+            callback_data: '4'
+          },
+          {
+            text: '5',
+            callback_data: '5'
+          },
+        ]
+      ]
+    }
+  };
+  bot.sendMessage(msg.chat.id, 'Original Text', opts);
+});
+
+
+// Handle callback queries
+bot.on('callback_query', function onCallbackQuery(callbackQuery) {
+  const action = callbackQuery.data;
+  const msg = callbackQuery.message;
+  const opts = {
+    chat_id: msg.chat.id,
+    message_id: msg.message_id,
+  };
+  let text;
+
+  switch(action) {
+    case '1':
+      text = '1';
+      break;
+    case '2':
+      text = '2';
+      break;
+    case '3':
+      text = '3';
+      break;
+    case '4':
+      text = '4';
+      break;
+    case '5':
+      text = '5';
+      break;
+  }
+
+  bot.editMessageText(`Selected: ${text}`, opts);
+});
+
+
+
+/*
+Command/Bot Ideas
+  make a chat with a bot that auto-keyboards to various "AAAAAAAAAA" messages and bans everyone who doesn't use them
+
+  useful refrence https://github.com/yagop/node-telegram-bot-api/blob/release/examples/polling.js
+*/
+
 
 // Promise.all([
 //   getMetadata(),
