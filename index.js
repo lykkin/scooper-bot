@@ -214,10 +214,39 @@ async function getMetadata() {
 
 bot.onText(
   /(?<lift>[a-zA-Z]+): (?<sets>[0-9]+)x(?<reps>[0-9]+)@(?<weight>[0-9]+)/,
-  (msg, match) => {
+  async (msg, match) => {
     // 'msg' is the received Message from Telegram
     // 'match' is the result of executing the regexp above on the text content
     // of the message
+    const payload = {
+      nickname: msg.from.first_name,
+      sets: Number(match.groups.sets),
+      weight: Number(match.groups.weight),
+      reps: Number(match.groups.reps),
+      lift: match.groups.lift
+    };
+    console.log('ayloa', payload);
+    try {
+      const hello = await axios.post('https://wheypi.shithouse.tv/api/lifts', 
+        payload,
+        {headers: {'Authorization': `${process.env.LIFT_TOKEN}`}}
+        );
+        console.log('res', hello.data)
+    } catch(error) {
+      // console.log('Lift post error',error)
+      console.log('message:', error.message)
+      console.log('code:', error.code);
+      console.log('request:', error.request);
+      console.log('isAxiosError', error.isAxiosError);
+
+      // console.log('response', error.response);
+      if(error.response){
+      console.log('data', error.response.data);
+      console.log('status', error.response.status);
+      // console.log('headers', error.response.headers);
+      }
+    }
+
     const chatId = msg.chat.id;
     // const resp = match[1]; // the captured "whatever"
     const response = `YA GONNA GET SWOLE DOING ${match.groups.lift.toUpperCase()}?
@@ -229,14 +258,16 @@ bot.onText(
   }
 );
 
-Promise.all([
-  getMetadata(),
-  getDbFileHandle().then(loadDb),
-  getBumps(),
-])
-  .then(async function([{botInfo}, db, bumps]) {
-    startLinkScraper(botInfo, db)
-    await generateUploadBumps(PARALLEL_UPLOADERS)(botInfo, db, bumps)
-  })
-  //.then(cleanBumps)
-console.log(process.env)
+
+
+// Promise.all([
+//   getMetadata(),
+//   getDbFileHandle().then(loadDb),
+//   getBumps(),
+// ])
+//   .then(async function([{botInfo}, db, bumps]) {
+//     startLinkScraper(botInfo, db)
+//     await generateUploadBumps(PARALLEL_UPLOADERS)(botInfo, db, bumps)
+//   })
+//   //.then(cleanBumps)
+// console.log(process.env)
