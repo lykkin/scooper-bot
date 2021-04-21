@@ -297,7 +297,51 @@ bot.onText(/my lifts/,
   }
 );
 
+const pizzas = [
+  {
+    text: 'BASSBOOSTED',
+    url: 'https://www.youtube.com/watch?v=Q6jJQWc2hBY'
+  },
+  {
+    text: 'REGULAR',
+    url: 'https://www.youtube.com/watch?v=czTksCF6X8Y'
+  },
+  {
+    text: 'EXTENDED',
+    url: 'https://soundcloud.com/dullstaples/the-spiderman-2-pizza-theme-but-its-extended-for-over-4-minutes'
+  },
+  {
+    text: 'OTAMATONE',
+    url: 'https://www.youtube.com/watch?v=fAdFL_6ii4U'
+  },
+  {
+    text: 'ONE HOUR',
+    url: 'https://www.youtube.com/watch?v=gUqH6Weyr2M'
+  },
+  {
+    text: 'METAL',
+    url: 'https://www.youtube.com/watch?v=w8n2-l3bCn0'
+  },
+  {
+    text: 'BASSBOOSTED',
+    url: 'https://www.youtube.com/watch?v=3NZGbD236fw'
+  }
+]
 
+function getPizza(pizzas) {
+  return [pizzas[Math.floor(Math.random() * pizzas.length)]]
+}
+
+bot.onText(/spiderman/, function onEditableText(msg) {
+  const opts = {
+    reply_markup: {
+      inline_keyboard: [
+        getPizza(pizzas)
+      ]
+    }
+  };
+  bot.sendMessage(msg.chat.id, 'PIZZA TIME', opts);
+});
 
 // Keyboard replacement meme
 bot.onText(/fmuf2/, (msg) => {
@@ -324,7 +368,7 @@ bot.onText(/fmuf/, function onEditableText(msg) {
         [
           {
             text: '1',
-            callback_data: '1'
+            callback_data: 'ASDF'
           },
           {
             text: '2',
@@ -341,6 +385,10 @@ bot.onText(/fmuf/, function onEditableText(msg) {
           {
             text: '5',
             callback_data: '5'
+          },
+          {
+            text: 'ASDF',
+            callback_data: 'ALKSDJFKLS'
           },
         ]
       ]
