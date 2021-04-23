@@ -212,14 +212,249 @@ async function getMetadata() {
   }
 }
 
-Promise.all([
-  getMetadata(),
-  getDbFileHandle().then(loadDb),
-  getBumps(),
-])
-  .then(async function([{botInfo}, db, bumps]) {
-    startLinkScraper(botInfo, db)
-    await generateUploadBumps(PARALLEL_UPLOADERS)(botInfo, db, bumps)
-  })
-  //.then(cleanBumps)
-console.log(process.env)
+bot.onText(
+  /(?<lift>[a-zA-Z0-9\s]+): (?<sets>[0-9]+)x(?<reps>[0-9]+)@(?<weight>[0-9]+)/,
+  async (msg, match) => {
+    // 'msg' is the received Message from Telegram
+    // 'match' is the result of executing the regexp above on the text content
+    // of the message
+    const chatId = msg.chat.id;
+    const payload = {
+      nickname: msg.from.first_name,
+      sets: Number(match.groups.sets),
+      weight: Number(match.groups.weight),
+      reps: Number(match.groups.reps),
+      lift: match.groups.lift
+    };
+    console.log('ayloa', payload);
+    try {
+      const hello = await axios.post('https://wheypi.shithouse.tv/api/lifts', 
+        payload,
+        {headers: {'Authorization': `${process.env.LIFT_TOKEN}`}}
+        );
+        console.log('res', hello.data)
+      if(hello) {
+        const response = `YA GONNA GET SWOLE DOING ${match.groups.lift.toUpperCase()}?\r\nSETS: ${match.groups.sets}\r\nREPS: ${match.groups.reps}\r\nWEIGHT: ${match.groups.weight}`;
+        bot.sendMessage(chatId, response);
+      }
+
+    } catch(error) {
+      // console.log('Lift post error',error)
+      console.log('message:', error.message)
+      console.log('code:', error.code);
+      console.log('request:', error.request);
+      console.log('isAxiosError', error.isAxiosError);
+
+      // console.log('response', error.response);
+      if(error.response){
+      console.log('data', error.response.data);
+      console.log('status', error.response.status);
+      // console.log('headers', error.response.headers);
+      bot.sendMessage(chatId, 'FUCK YOU WEAKLING')
+      }
+    }
+
+
+  }
+);
+
+// TODO: fix "lift" regex, spit errors on failed posts, fix async bot msging
+bot.onText(/my lifts/,
+  async (msg, match) => {
+    // 'msg' is the received Message from Telegram
+    // 'match' is the result of executing the regexp above on the text content
+    // of the message
+    const chatId = msg.chat.id;
+    const nickname = msg.from.first_name;
+    try {
+      const hello = await axios.get(`https://wheypi.shithouse.tv/api/lifts/${nickname}`);
+
+      if(hello.data.data.length > 0) {
+        bot.sendMessage(chatId, `HERE'S YOUR WORKOUT SCRUB:`)
+        hello.data.data.forEach(lift => {
+          bot.sendMessage(chatId, `${lift.lift}\r\nSETS ${lift.sets}\r\nREPS ${lift.reps}\r\nWEIGHT ${lift.weight}`);
+        });
+        bot.sendMessage(chatId, 'DO MORE REPS TODAY, ARE YOU FUCKING TIRED YET?')
+      } else {
+        bot.sendMessage(chatId, `WHAT DO YOU MEAN YOU DON'T HAVE A ROUTINE YET?`)
+      }
+
+    } catch(error) {
+      // console.log('Lift post error',error)
+      console.log('message:', error.message)
+      console.log('code:', error.code);
+      console.log('request:', error.request);
+      console.log('isAxiosError', error.isAxiosError);
+
+      // console.log('response', error.response);
+      if(error.response){
+      console.log('data', error.response.data);
+      console.log('status', error.response.status);
+      // console.log('headers', error.response.headers);
+      bot.sendMessage(chatId, 'FUCK YOU WEAKLING')
+      }
+    }
+  }
+);
+
+const pizzas = [
+  {
+    text: 'BASSBOOSTED',
+    url: 'https://www.youtube.com/watch?v=Q6jJQWc2hBY'
+  },
+  {
+    text: 'REGULAR',
+    url: 'https://www.youtube.com/watch?v=czTksCF6X8Y'
+  },
+  {
+    text: 'EXTENDED',
+    url: 'https://soundcloud.com/dullstaples/the-spiderman-2-pizza-theme-but-its-extended-for-over-4-minutes'
+  },
+  {
+    text: 'OTAMATONE',
+    url: 'https://www.youtube.com/watch?v=fAdFL_6ii4U'
+  },
+  {
+    text: 'PIZZATIME',
+    url: 'https://www.youtube.com/watch?v=lpvT-Fciu-4'
+  },
+  {
+    text: 'BUCKBUMBLE',
+    url: 'https://www.youtube.com/watch?v=x7ok5AV7ZrM'
+  },
+  {
+    text: 'ONE HOUR',
+    url: 'https://www.youtube.com/watch?v=gUqH6Weyr2M'
+  },
+  {
+    text: 'METAL',
+    url: 'https://www.youtube.com/watch?v=w8n2-l3bCn0'
+  },
+  {
+    text: 'BASSBOOSTED',
+    url: 'https://www.youtube.com/watch?v=3NZGbD236fw'
+  }
+]
+
+function getPizza(pizzas) {
+  return [pizzas[Math.floor(Math.random() * pizzas.length)]]
+}
+
+bot.onText(/spiderman/, function onEditableText(msg) {
+  const opts = {
+    reply_markup: {
+      inline_keyboard: [
+        getPizza(pizzas)
+      ]
+    }
+  };
+  bot.sendMessage(msg.chat.id, 'PIZZA TIME', opts);
+});
+
+// Keyboard replacement meme
+bot.onText(/fmuf2/, (msg) => {
+  const opts = {
+    reply_to_message_id: msg.message_id,
+    reply_markup: JSON.stringify({
+      keyboard: [
+        ['AAAAAAAAAAAAAAA'],
+        ['AAAAAAAAAAAAAAAAAAAAAAAAAAA'],
+        ['AAAAAAAAAAAAAAAAAAAAAAA'],
+        ['AAAAAAAAA'],
+        ['AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA']
+      ]
+    })
+  };
+  bot.sendMessage(msg.chat.id, 'AAAAAAAAAAAA', opts);
+});
+
+// Inline keboard example
+bot.onText(/fmuf/, function onEditableText(msg) {
+  const opts = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: '1',
+            callback_data: 'ASDF'
+          },
+          {
+            text: '2',
+            callback_data: '2'
+          },
+          {
+            text: '3',
+            callback_data: '3'
+          },
+          {
+            text: '4',
+            callback_data: '4'
+          },
+          {
+            text: '5',
+            callback_data: '5'
+          },
+          {
+            text: 'ASDF',
+            callback_data: 'ALKSDJFKLS'
+          },
+        ]
+      ]
+    }
+  };
+  bot.sendMessage(msg.chat.id, 'Original Text', opts);
+});
+
+
+// Handle callback queries
+bot.on('callback_query', function onCallbackQuery(callbackQuery) {
+  const action = callbackQuery.data;
+  const msg = callbackQuery.message;
+  const opts = {
+    chat_id: msg.chat.id,
+    message_id: msg.message_id,
+  };
+  let text;
+
+  switch(action) {
+    case '1':
+      text = '1';
+      break;
+    case '2':
+      text = '2';
+      break;
+    case '3':
+      text = '3';
+      break;
+    case '4':
+      text = '4';
+      break;
+    case '5':
+      text = '5';
+      break;
+  }
+
+  bot.editMessageText(`Selected: ${text}`, opts);
+});
+
+
+
+/*
+Command/Bot Ideas
+  make a chat with a bot that auto-keyboards to various "AAAAAAAAAA" messages and bans everyone who doesn't use them
+
+  useful refrence https://github.com/yagop/node-telegram-bot-api/blob/release/examples/polling.js
+*/
+
+
+// Promise.all([
+//   getMetadata(),
+//   getDbFileHandle().then(loadDb),
+//   getBumps(),
+// ])
+//   .then(async function([{botInfo}, db, bumps]) {
+//     startLinkScraper(botInfo, db)
+//     await generateUploadBumps(PARALLEL_UPLOADERS)(botInfo, db, bumps)
+//   })
+//   //.then(cleanBumps)
+// console.log(process.env)
