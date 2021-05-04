@@ -86,7 +86,7 @@ async function uploader(botInfo, bumps, db) {
     // compute image buffer to send
     let im
     try {
-      im = await Jimp.read(`http://${bump.name}.shithouse.tv/${bump.image}`)
+      im = await Jimp.read(`https://${bump.name}.shithouse.tv/${bump.image}`)
     } catch (e) {
       console.log('error fetching bump', e)
       seen[bump.name] = true
@@ -169,7 +169,7 @@ async function startLinkScraper(botInfo, db) {
         title: msg.text
       }
       try {
-        await axios.post('http://infoforcefeed.shithouse.tv/submit', payload)
+        await axios.post('https://infoforcefeed.shithouse.tv/submit', payload)
       } catch (e) {
         console.log('failure in shipping', {
           payload,
@@ -181,7 +181,7 @@ async function startLinkScraper(botInfo, db) {
 }
 
 async function getBumps() {
-  const bumpRequest = axios.get('http://api.shithouse.tv')
+  const bumpRequest = axios.get('https://api.shithouse.tv')
   return (await bumpRequest).data.filter(b => b.image && imageRegex.exec(b.image)).reverse()
 
 }
@@ -447,14 +447,14 @@ Command/Bot Ideas
 */
 
 
-// Promise.all([
-//   getMetadata(),
-//   getDbFileHandle().then(loadDb),
-//   getBumps(),
-// ])
-//   .then(async function([{botInfo}, db, bumps]) {
-//     startLinkScraper(botInfo, db)
-//     await generateUploadBumps(PARALLEL_UPLOADERS)(botInfo, db, bumps)
-//   })
-//   //.then(cleanBumps)
-// console.log(process.env)
+Promise.all([
+  getMetadata(),
+  getDbFileHandle().then(loadDb),
+  getBumps(),
+])
+  .then(async function([{botInfo}, db, bumps]) {
+    startLinkScraper(botInfo, db)
+    await generateUploadBumps(PARALLEL_UPLOADERS)(botInfo, db, bumps)
+  })
+  //.then(cleanBumps)
+//console.log(process.env)
