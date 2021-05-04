@@ -76,8 +76,10 @@ async function uploader(botInfo, bumps, db) {
     const bump = bumps.pop()
     const i = bumps.length
     if (seen[bump.name]) {
+      console.log('skipping ' + bump.name)
       continue
     }
+    console.log('uploading ' + bump.name)
 
     // compute sticker set name
     const setIdx = (i / SET_SIZE) | 0
@@ -181,8 +183,8 @@ async function startLinkScraper(botInfo, db) {
 }
 
 async function getBumps() {
-  const bumpRequest = axios.get('http://api.shithouse.tv')
-  return (await bumpRequest).data.filter(b => b.image && imageRegex.exec(b.image)).reverse()
+  const bumps = await axios.get('http://api.shithouse.tv')
+  return bumps.data.filter(b => b.image && imageRegex.exec(b.image)).reverse()
 
 }
 
@@ -215,11 +217,14 @@ async function getMetadata() {
 Promise.all([
   getMetadata(),
   getDbFileHandle().then(loadDb),
-  getBumps(),
 ])
-  .then(async function([{botInfo}, db, bumps]) {
+  .then(async function([{botInfo}, db]) {
     startLinkScraper(botInfo, db)
-    await generateUploadBumps(PARALLEL_UPLOADERS)(botInfo, db, bumps)
+    while (true) {
+      const bumps = await getBumps()
+      await generateUploadBumps(PARALLEL_UPLOADERS)(botInfo, db, bumps)
+      await sleep(4*60*60*1000)
+    }
   })
   //.then(cleanBumps)
 console.log(process.env)
