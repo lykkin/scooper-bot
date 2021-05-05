@@ -1,0 +1,4 @@
+#!/sbin/openrc-run
+command="/usr/sbin/scooper-bot"
+command_args="-s /srv/scooper-bot -t NOPE -u NOPE -S NOPE"
+supervisor="supervise-daemon"
